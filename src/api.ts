@@ -1,4 +1,4 @@
-import type { Channel, DemoReport, PiiMode, SendResponse, TransferDetail, TransferSummary, VaspInfo } from './types';
+import type { Channel, DemoReport, PiiMode, RecipientKey, SendResponse, TransferDetail, TransferSummary, VaspInfo } from './types';
 
 /** Vite proxies /api to the Spring server, so this is same-origin in dev. */
 const BASE = import.meta.env.VITE_API_BASE ?? '';
@@ -55,6 +55,7 @@ export const api = {
     mode: PiiMode;
     channel: Channel;
     pii?: Record<string, unknown>;
+    recipientKey?: RecipientKey;
   }) => request<SendResponse>('/api/send', { method: 'POST', body: JSON.stringify(body) }),
 
   demo: (mode: PiiMode) => request<DemoReport>(`/api/demo?mode=${mode}`),

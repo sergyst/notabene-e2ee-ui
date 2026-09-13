@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ApiFailure, api } from '../api';
-import type { Channel, PiiMode, SendResponse, VaspInfo } from '../types';
+import type { Channel, KeySource, PiiMode, RecipientKey, SendResponse, VaspInfo } from '../types';
 import { QUICK_FIELDS, getAt, setAt } from '../pii';
 import { ChannelPicker } from './VaspPicker';
 import { Json } from './Json';
@@ -23,6 +23,9 @@ export function SendView({
   const [pii, setPii] = useState<Record<string, unknown> | null>(null);
   const [text, setText] = useState('');
   const [textError, setTextError] = useState<string | null>(null);
+  const [keySource, setKeySource] = useState<KeySource>('notabene');
+  const [explicitKid, setExplicitKid] = useState('');
+  const [explicitHex, setExplicitHex] = useState('');
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<SendResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,8 +76,15 @@ export function SendView({
     setSending(true);
     setError(null);
     setResult(null);
+    const recipientKey: RecipientKey | undefined =
+      keySource === 'notabene'
+        ? undefined
+        : keySource === 'local'
+          ? { source: 'local' }
+          : { source: 'explicit', kid: explicitKid || undefined, publicKeyHex: explicitHex };
+
     api
-      .send({ from, to, mode, channel, pii })
+      .send({ from, to, mode, channel, pii, recipientKey })
       .then((r) => {
         setResult(r);
         onSent();
@@ -124,6 +134,57 @@ export function SendView({
             </div>
           </label>
 
+          <label className="field">
+            <span>Encrypt to</span>
+            <div className="seg">
+              <button aria-pressed={keySource === 'notabene'} onClick={() => setKeySource('notabene')}
+                title="Ask Notabene for the counterparty's published key">
+                Notabene lookup
+              </button>
+              <button aria-pressed={keySource === 'local'} onClick={() => setKeySource('local')}
+                title={`This server's key for ${to}`}>
+                This server's {to} key
+              </button>
+              <button aria-pressed={keySource === 'explicit'} onClick={() => setKeySource('explicit')}
+                title="Paste a public key">
+                Paste key
+              </button>
+            </div>
+          </label>
+
+          {keySource === 'explicit' && (
+            <>
+              <label className="field">
+                <span>Recipient key id (apv is bound to this)</span>
+                <input type="text" value={explicitKid} spellCheck={false}
+                  placeholder={`${vasps.find((v) => v.name === to)?.did ?? 'did:web:…'}#pii`}
+                  onChange={(e) => setExplicitKid(e.target.value)} />
+              </label>
+              <label className="field">
+                <span>Recipient public key (hex, compressed or uncompressed P-256)</span>
+                <input type="text" value={explicitHex} spellCheck={false}
+                  placeholder="02…"
+                  onChange={(e) => setExplicitHex(e.target.value)} />
+              </label>
+            </>
+          )}
+
+          {keySource === 'local' && (
+            <div className="banner info">
+              Encrypting to <code>{vasps.find((v) => v.name === to)?.kid}</code>. Only this server can
+              read it back, since it holds the private half — use it when the counterparty's DID does
+              not resolve.
+            </div>
+          )}
+
+          {channel === 'notabene' && mode === 'branch' && (
+            <div className="banner warn">
+              Notabene rejects branch mode: it validates that <code>ivms101.originator</code> is an
+              object, and <code>skipValidation</code> does not bypass that. Use <strong>field</strong>
+              {' '}for live sends; branch works on the local channel.
+            </div>
+          )}
+
           {sameVasp && <div className="banner warn">From and To are the same VASP.</div>}
 
           {groups.map(([group, fields]) => (
@@ -145,7 +206,7 @@ export function SendView({
             </div>
           ))}
 
-          <button className="btn primary" onClick={send} disabled={sending || !pii || !!textError || !from || !to}>
+          <button className="btn primary" onClick={send} disabled={sending || !pii || !!textError || !from || !to || (keySource === 'explicit' && !explicitHex.trim())}>
             {sending ? <span className="spin" /> : `Send ${from} → ${to}`}
           </button>
         </div>
@@ -201,6 +262,7 @@ export function SendView({
               <dl className="kv" style={{ marginBottom: 12 }}>
                 <dt>Transfer</dt><dd>{result.transferId}</dd>
                 <dt>Encrypted to</dt><dd>{result.recipientKid}</dd>
+                <dt>Key source</dt><dd>{result.recipientKeySource}</dd>
                 <dt>Parts</dt><dd>{result.encryptedPaths.join(', ')}</dd>
               </dl>
               {result.warning && <div className="banner warn">{result.warning}</div>}

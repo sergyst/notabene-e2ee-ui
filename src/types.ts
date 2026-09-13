@@ -41,11 +41,20 @@ export interface TransferDetail {
   fields: { path: string; value: unknown }[];
 }
 
+export type KeySource = 'notabene' | 'local' | 'explicit';
+
+export interface RecipientKey {
+  source: KeySource;
+  kid?: string;
+  publicKeyHex?: string;
+}
+
 export interface SendResponse {
   transferId: string;
   from: string;
   to: string;
   recipientKid: string;
+  recipientKeySource: KeySource;
   mode: PiiMode;
   channel: Channel;
   jweCount: number;
