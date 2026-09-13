@@ -86,7 +86,8 @@ export function SendView({
   const sameVasp = from === to;
 
   return (
-    <div className="grid-2">
+    <>
+      <div className="grid-2 send-grid">
       <div className="panel">
         <div className="panel-head">
           <h2>Compose</h2>
@@ -150,8 +151,7 @@ export function SendView({
         </div>
       </div>
 
-      <div>
-        <div className="panel">
+      <div className="panel fill">
           <div className="panel-head">
             <h2>IVMS101 payload</h2>
             <span className="spacer" />
@@ -168,9 +168,10 @@ export function SendView({
             />
             {textError && <div className="banner error" style={{ marginTop: 10, marginBottom: 0 }}>{textError}</div>}
           </div>
-        </div>
+      </div>
+      </div>
 
-        {error && (
+      {error && (
           <div className="panel" style={{ marginTop: 16 }}>
             <div className="panel-head"><h2>Send failed</h2></div>
             <div className="panel-body">
@@ -186,7 +187,7 @@ export function SendView({
           </div>
         )}
 
-        {result && (
+      {result && (
           <div className="panel" style={{ marginTop: 16 }}>
             <div className="panel-head">
               <h2>Sent</h2>
@@ -211,7 +212,6 @@ export function SendView({
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </>
   );
 }

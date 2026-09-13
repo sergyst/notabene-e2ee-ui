@@ -66,6 +66,19 @@ code, pre, .mono { font-family: var(--mono); }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 940px) { .grid-2 { grid-template-columns: 1fr; } }
 
+/*
+ * Send tab: both panels share one height. Grid already stretches them to the
+ * tallest row, so the min-height just adds headroom on top of that.
+ * 729px is the Compose column's natural content height; +5% is the extra room.
+ * Using min-height means a longer form simply grows, and both stay level.
+ */
+.send-grid > .panel { min-height: calc(729px * 1.05); }
+
+/* Let the payload panel's textarea absorb whatever height the row ends up at. */
+.panel.fill { display: flex; flex-direction: column; }
+.panel.fill .panel-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.panel.fill textarea { flex: 1; min-height: 0; }
+
 /* ---------------------------------------------------------------- controls */
 
 .seg { display: inline-flex; background: var(--panel-2); border-radius: 6px; padding: 2px; gap: 2px; }
