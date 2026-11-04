@@ -52,7 +52,10 @@ export interface RecipientKey {
 export interface SendResponse {
   transferId: string;
   from: string;
+  /** The beneficiary VASP Notabene named as owner of the address. */
   to: string;
+  beneficiaryDid: string;
+  beneficiaryDiscoveredFrom: string;
   recipientKid: string;
   recipientKeySource: KeySource;
   mode: PiiMode;

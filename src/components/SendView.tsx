@@ -18,7 +18,7 @@ export function SendView({
   onSent: () => void;
 }) {
   const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [beneficiaryAddress, setBeneficiaryAddress] = useState('');
   const [mode, setMode] = useState<PiiMode>('branch');
   const [pii, setPii] = useState<Record<string, unknown> | null>(null);
   const [text, setText] = useState('');
@@ -33,7 +33,6 @@ export function SendView({
   useEffect(() => {
     if (vasps.length && !from) {
       setFrom(vasps[0].name);
-      setTo(vasps[1]?.name ?? vasps[0].name);
     }
   }, [vasps, from]);
 
@@ -84,7 +83,7 @@ export function SendView({
           : { source: 'explicit', kid: explicitKid || undefined, publicKeyHex: explicitHex };
 
     api
-      .send({ from, to, mode, channel, pii, recipientKey })
+      .send({ from, beneficiaryAddress: beneficiaryAddress.trim(), mode, channel, pii, recipientKey })
       .then((r) => {
         setResult(r);
         onSent();
@@ -92,8 +91,6 @@ export function SendView({
       .catch((e: ApiFailure) => setError(e.details ? `${e.message}\n\n${e.details}` : e.message))
       .finally(() => setSending(false));
   };
-
-  const sameVasp = from === to;
 
   return (
     <>
@@ -113,10 +110,10 @@ export function SendView({
               </select>
             </label>
             <label className="field">
-              <span>To</span>
-              <select value={to} onChange={(e) => setTo(e.target.value)}>
-                {vasps.map((v) => <option key={v.name} value={v.name}>{v.name}</option>)}
-              </select>
+              <span>Beneficiary address (CAIP-10) — Notabene finds its owner</span>
+              <input type="text" value={beneficiaryAddress} spellCheck={false}
+                placeholder="eip155:1:0x…"
+                onChange={(e) => setBeneficiaryAddress(e.target.value)} />
             </label>
           </div>
 
@@ -142,8 +139,8 @@ export function SendView({
                 Notabene lookup
               </button>
               <button aria-pressed={keySource === 'local'} onClick={() => setKeySource('local')}
-                title={`This server's key for ${to}`}>
-                This server's {to} key
+                title="This server's key for the VASP that owns the address">
+                This server's key for the owner
               </button>
               <button aria-pressed={keySource === 'explicit'} onClick={() => setKeySource('explicit')}
                 title="Paste a public key">
@@ -157,7 +154,7 @@ export function SendView({
               <label className="field">
                 <span>Recipient key id (apv is bound to this)</span>
                 <input type="text" value={explicitKid} spellCheck={false}
-                  placeholder={`${vasps.find((v) => v.name === to)?.did ?? 'did:web:…'}#pii`}
+                  placeholder="did:web:…#pii"
                   onChange={(e) => setExplicitKid(e.target.value)} />
               </label>
               <label className="field">
@@ -171,9 +168,9 @@ export function SendView({
 
           {keySource === 'local' && (
             <div className="banner info">
-              Encrypting to <code>{vasps.find((v) => v.name === to)?.kid}</code>. Only this server can
-              read it back, since it holds the private half — use it when the counterparty's DID does
-              not resolve.
+              Encrypting to this server's key for whichever configured VASP owns the address. Only this
+              server can read it back, since it holds the private half — use it when the counterparty's
+              DID does not resolve. The owner must be one of the VASPs configured here.
             </div>
           )}
 
@@ -184,8 +181,6 @@ export function SendView({
               {' '}for live sends; branch works on the local channel.
             </div>
           )}
-
-          {sameVasp && <div className="banner warn">From and To are the same VASP.</div>}
 
           {groups.map(([group, fields]) => (
             <div key={group} style={{ marginBottom: 14 }}>
@@ -206,8 +201,8 @@ export function SendView({
             </div>
           ))}
 
-          <button className="btn primary" onClick={send} disabled={sending || !pii || !!textError || !from || !to || (keySource === 'explicit' && !explicitHex.trim())}>
-            {sending ? <span className="spin" /> : `Send ${from} → ${to}`}
+          <button className="btn primary" onClick={send} disabled={sending || !pii || !!textError || !from || !beneficiaryAddress.trim() || (keySource === 'explicit' && !explicitHex.trim())}>
+            {sending ? <span className="spin" /> : `Send from ${from}`}
           </button>
         </div>
       </div>
@@ -261,6 +256,7 @@ export function SendView({
             <div className="panel-body">
               <dl className="kv" style={{ marginBottom: 12 }}>
                 <dt>Transfer</dt><dd>{result.transferId}</dd>
+                <dt>Beneficiary VASP</dt><dd>{result.to ?? result.beneficiaryDid} ({result.beneficiaryDid})</dd>
                 <dt>Encrypted to</dt><dd>{result.recipientKid}</dd>
                 <dt>Key source</dt><dd>{result.recipientKeySource}</dd>
                 <dt>Parts</dt><dd>{result.encryptedPaths.join(', ')}</dd>

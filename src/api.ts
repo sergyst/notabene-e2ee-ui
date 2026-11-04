@@ -51,7 +51,7 @@ export const api = {
 
   send: (body: {
     from: string;
-    to: string;
+    beneficiaryAddress: string;
     mode: PiiMode;
     channel: Channel;
     pii?: Record<string, unknown>;
