@@ -1,4 +1,4 @@
-import type { Channel, DemoReport, PiiMode, RecipientKey, SendResponse, TransferDetail, TransferSummary, VaspInfo } from './types';
+import type { Attestation, Channel, DemoReport, PiiMode, RecipientKey, RegisterResponse, RegistrationStatus, SendResponse, TransferDetail, TransferSummary, VaspInfo } from './types';
 
 /** Vite proxies /api to the Spring server, so this is same-origin in dev. */
 const BASE = import.meta.env.VITE_API_BASE ?? '';
@@ -59,6 +59,19 @@ export const api = {
   }) => request<SendResponse>('/api/send', { method: 'POST', body: JSON.stringify(body) }),
 
   demo: (mode: PiiMode) => request<DemoReport>(`/api/demo?mode=${mode}`),
+
+  registrationStatus: (vasp: string, address: string, network: string) =>
+    request<RegistrationStatus>(`/api/registration-status?${new URLSearchParams({ vasp, address, network })}`),
+
+  registerInitiate: (vasp: string, address: string, network: string) =>
+    request<Attestation>(`/api/register/initiate?${new URLSearchParams({ vasp, address, network })}`),
+
+  registerComplete: (body: {
+    vasp: string;
+    address: string;
+    network: string;
+    proof: { type: string; attestation: string; signature: string };
+  }) => request<RegisterResponse>('/api/register/complete', { method: 'POST', body: JSON.stringify(body) }),
 
   samplePii: () => request<Record<string, unknown>>('/api/samplePii'),
 };

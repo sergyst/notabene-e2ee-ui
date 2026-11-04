@@ -86,3 +86,37 @@ export interface ApiError {
   message: string;
   details?: string;
 }
+
+export interface Attestation {
+  message: string;
+  caip10: string;
+  owner: string;
+  network: string;
+  suggestedType: string;
+  howToSign: string;
+}
+
+export interface RegistrationStatus {
+  registered: boolean;
+  address: string;
+  network: string;
+  caip10: string;
+  asset: string;
+  confidence: string;
+  vasp: {
+    did: string;
+    name: string | null;
+    jurisdiction: string | null;
+    configuredName: string | null;
+    custodianDid: string | null;
+    custodianName: string | null;
+  } | null;
+}
+
+export interface RegisterResponse {
+  vasp: string;
+  owner: string;
+  caip10: string;
+  notabeneResponse: Record<string, unknown>;
+  status: RegistrationStatus;
+}

@@ -3,9 +3,10 @@ import { ApiFailure, api } from './api';
 import type { Channel, VaspInfo } from './types';
 import { TransfersView } from './components/TransfersView';
 import { SendView } from './components/SendView';
+import { RegisterView } from './components/RegisterView';
 import { SetupView } from './components/SetupView';
 
-type Tab = 'transfers' | 'send' | 'setup';
+type Tab = 'transfers' | 'send' | 'register' | 'setup';
 
 export default function App() {
   const [vasps, setVasps] = useState<VaspInfo[]>([]);
@@ -51,6 +52,7 @@ export default function App() {
         <nav className="tabs">
           <button aria-selected={tab === 'transfers'} onClick={() => setTab('transfers')}>Transfers</button>
           <button aria-selected={tab === 'send'} onClick={() => setTab('send')}>Send</button>
+          <button aria-selected={tab === 'register'} onClick={() => setTab('register')}>Register</button>
           <button aria-selected={tab === 'setup'} onClick={() => setTab('setup')}>Setup</button>
         </nav>
       </header>
@@ -75,6 +77,7 @@ export default function App() {
           }}
         />
       )}
+      {connected && tab === 'register' && <RegisterView vasps={vasps} />}
       {connected && tab === 'setup' && <SetupView vasps={vasps} />}
     </div>
   );
