@@ -52,6 +52,7 @@ export const api = {
   send: (body: {
     from: string;
     beneficiaryAddress: string;
+    network: string;
     mode: PiiMode;
     channel: Channel;
     pii?: Record<string, unknown>;

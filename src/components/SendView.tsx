@@ -19,6 +19,7 @@ export function SendView({
 }) {
   const [from, setFrom] = useState('');
   const [beneficiaryAddress, setBeneficiaryAddress] = useState('');
+  const [network, setNetwork] = useState('ethereum');
   const [mode, setMode] = useState<PiiMode>('branch');
   const [pii, setPii] = useState<Record<string, unknown> | null>(null);
   const [text, setText] = useState('');
@@ -83,7 +84,7 @@ export function SendView({
           : { source: 'explicit', kid: explicitKid || undefined, publicKeyHex: explicitHex };
 
     api
-      .send({ from, beneficiaryAddress: beneficiaryAddress.trim(), mode, channel, pii, recipientKey })
+      .send({ from, beneficiaryAddress: beneficiaryAddress.trim(), network: network.trim(), mode, channel, pii, recipientKey })
       .then((r) => {
         setResult(r);
         onSent();
@@ -110,10 +111,19 @@ export function SendView({
               </select>
             </label>
             <label className="field">
-              <span>Beneficiary address (CAIP-10) — Notabene finds its owner</span>
+              <span>Beneficiary address — Notabene finds its owner</span>
               <input type="text" value={beneficiaryAddress} spellCheck={false}
-                placeholder="eip155:1:0x…"
+                placeholder="0x…"
                 onChange={(e) => setBeneficiaryAddress(e.target.value)} />
+            </label>
+            <label className="field">
+              <span>Network</span>
+              <input type="text" list="send-networks" value={network}
+                placeholder="ethereum, or eip155:42161"
+                onChange={(e) => setNetwork(e.target.value)} />
+              <datalist id="send-networks">
+                <option value="ethereum" /><option value="polygon" /><option value="bitcoin" />
+              </datalist>
             </label>
           </div>
 
@@ -201,7 +211,7 @@ export function SendView({
             </div>
           ))}
 
-          <button className="btn primary" onClick={send} disabled={sending || !pii || !!textError || !from || !beneficiaryAddress.trim() || (keySource === 'explicit' && !explicitHex.trim())}>
+          <button className="btn primary" onClick={send} disabled={sending || !pii || !!textError || !from || !beneficiaryAddress.trim() || !network.trim() || (keySource === 'explicit' && !explicitHex.trim())}>
             {sending ? <span className="spin" /> : `Send from ${from}`}
           </button>
         </div>
