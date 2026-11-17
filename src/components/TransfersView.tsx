@@ -85,7 +85,7 @@ export function TransfersView({
                 >
                   {showVaspColumn && <td><span className="tag vasp">{t.vasp}</span></td>}
                   <td>
-                    <span className={`tag ${t.direction === 'INCOMING' ? 'in' : 'out'}`}>
+                    <span className={`tag ${t.direction?.toUpperCase() === 'INCOMING' ? 'in' : 'out'}`}>
                       {t.direction ?? '—'}
                     </span>
                   </td>

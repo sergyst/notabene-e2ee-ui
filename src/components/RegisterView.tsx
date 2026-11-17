@@ -1,9 +1,17 @@
 import { useState } from 'react';
 import { ApiFailure, api } from '../api';
-import type { Attestation, RegisterResponse, RegistrationStatus, VaspInfo } from '../types';
+import type { Attestation, ProofType, RegisterResponse, RegistrationStatus, VaspInfo } from '../types';
 import { Json } from './Json';
 
 const NETWORKS = ['ethereum', 'polygon', 'bitcoin'];
+
+const PROOF_TYPES: { value: ProofType; label: string; signed: boolean }[] = [
+  { value: 'eip-191', label: 'eip-191 — signed message (EVM)', signed: true },
+  { value: 'bip-322', label: 'bip-322 — signed message (Bitcoin)', signed: true },
+  { value: 'bip-137-xpub', label: 'bip-137-xpub — signature + xpub', signed: true },
+  { value: 'self-declaration', label: 'self-declaration — attestation text', signed: false },
+  { value: 'screenshot', label: 'screenshot — attestation URL', signed: false },
+];
 
 interface EthereumProvider {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;
@@ -14,10 +22,11 @@ function injectedWallet(): EthereumProvider | undefined {
 }
 
 /**
- * Registering an address is always two steps with a signed proof: initiate
- * returns the exact message to sign, complete submits the signature. The
- * server never holds the address's private key, so signing happens here
- * (an injected wallet) or anywhere else the key lives.
+ * Registering an address registers the wallet under the VASP's Notabene
+ * customer and submits a proof of ownership. Signature proofs take two steps:
+ * initiate returns the exact message to sign, complete submits the signature
+ * (signing happens here with an injected wallet, or wherever the key lives).
+ * Self-declaration and screenshot proofs need no signature.
  */
 export function RegisterView({ vasps }: { vasps: VaspInfo[] }) {
   const [vasp, setVasp] = useState(vasps[0]?.name ?? '');
@@ -25,11 +34,16 @@ export function RegisterView({ vasps }: { vasps: VaspInfo[] }) {
   const [address, setAddress] = useState('');
   const [attestation, setAttestation] = useState<Attestation | null>(null);
   const [signature, setSignature] = useState('');
+  const [proofType, setProofType] = useState<ProofType>('eip-191');
+  const [text, setText] = useState('');
+  const [xpub, setXpub] = useState('');
+  const [managed, setManaged] = useState(false);
   const [status, setStatus] = useState<RegistrationStatus | null>(null);
   const [result, setResult] = useState<RegisterResponse | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const signed = PROOF_TYPES.find((p) => p.value === proofType)?.signed ?? true;
   const ready = vasp !== '' && address.trim() !== '' && network.trim() !== '';
 
   const run = async (label: string, fn: () => Promise<void>) => {
@@ -75,12 +89,19 @@ export function RegisterView({ vasps }: { vasps: VaspInfo[] }) {
 
   const complete = () =>
     run('complete', async () => {
-      if (!attestation) return;
       const done = await api.registerComplete({
         vasp,
         address: address.trim(),
         network: network.trim(),
-        proof: { type: attestation.suggestedType, attestation: attestation.message, signature: signature.trim() },
+        managed,
+        proof: signed
+          ? {
+              type: proofType,
+              attestation: attestation?.message,
+              signature: signature.trim(),
+              xpub: proofType === 'bip-137-xpub' ? xpub.trim() : undefined,
+            }
+          : { type: proofType, attestation: text.trim() },
       });
       setResult(done);
       setStatus(done.status);
@@ -119,21 +140,56 @@ export function RegisterView({ vasps }: { vasps: VaspInfo[] }) {
             />
           </label>
 
+          <label className="field">
+            <span>Proof type</span>
+            <select value={proofType} onChange={(e) => edit(() => setProofType(e.target.value as ProofType))}>
+              {PROOF_TYPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+          </label>
+          <label className="field" style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <input type="checkbox" checked={managed} onChange={(e) => setManaged(e.target.checked)} />
+            <span>Hosted wallet (managed). Leave off for a self-hosted wallet, which Notabene does not publish to counterparties.</span>
+          </label>
+
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn" onClick={check} disabled={!ready || busy !== null}>
               {busy === 'check' ? <span className="spin" /> : 'Check status'}
             </button>
-            <button className="btn primary" onClick={initiate} disabled={!ready || busy !== null}>
-              {busy === 'initiate' ? <span className="spin" /> : '1 · Get message to sign'}
-            </button>
+            {signed && (
+              <button className="btn primary" onClick={initiate} disabled={!ready || busy !== null}>
+                {busy === 'initiate' ? <span className="spin" /> : '1 · Get message to sign'}
+              </button>
+            )}
           </div>
 
           {error && <div className="banner error" style={{ marginTop: 14 }}>{error}</div>}
 
-          {attestation && (
+          {!signed && (
             <>
               <label className="field" style={{ marginTop: 18 }}>
-                <span>Message — sign exactly this ({attestation.suggestedType}). It carries a timestamp, so do not edit it.</span>
+                <span>{proofType === 'screenshot' ? 'URL of the screenshot' : 'Attestation text'}</span>
+                <textarea
+                  rows={3}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder={proofType === 'screenshot'
+                    ? 'https://…'
+                    : 'I hold the keys to this wallet and use it for my own funds.'}
+                />
+              </label>
+              <button className="btn primary" onClick={complete} disabled={!ready || text.trim() === '' || busy !== null}>
+                {busy === 'complete' ? <span className="spin" /> : 'Register with proof'}
+              </button>
+              <div className="dim" style={{ fontSize: 12, marginTop: 10 }}>
+                Stays Submitted until Notabene compliance accepts or rejects it.
+              </div>
+            </>
+          )}
+
+          {signed && attestation && (
+            <>
+              <label className="field" style={{ marginTop: 18 }}>
+                <span>Message — sign exactly this ({proofType}). It carries a timestamp, so do not edit it.</span>
                 <textarea readOnly rows={8} value={attestation.message} />
               </label>
               <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -154,10 +210,16 @@ export function RegisterView({ vasps }: { vasps: VaspInfo[] }) {
                   spellCheck={false}
                 />
               </label>
+              {proofType === 'bip-137-xpub' && (
+                <label className="field">
+                  <span>xpub</span>
+                  <input type="text" value={xpub} onChange={(e) => setXpub(e.target.value)} spellCheck={false} />
+                </label>
+              )}
               <button
                 className="btn primary"
                 onClick={complete}
-                disabled={signature.trim() === '' || busy !== null}
+                disabled={signature.trim() === '' || (proofType === 'bip-137-xpub' && xpub.trim() === '') || busy !== null}
               >
                 {busy === 'complete' ? <span className="spin" /> : '2 · Register with proof'}
               </button>
@@ -177,7 +239,7 @@ export function RegisterView({ vasps }: { vasps: VaspInfo[] }) {
             <>
               <div className={`banner ${status.registered ? 'ok' : 'info'}`}>
                 {status.registered
-                  ? `Registered to ${status.vasp?.configuredName ?? status.vasp?.name ?? status.vasp?.did} (${status.confidence})`
+                  ? `Registered to ${status.vasp?.configuredName ?? status.vasp?.name ?? status.vasp?.did} (${status.source ?? 'unknown source'})`
                   : 'Not registered — nobody owns this address yet.'}
               </div>
               <dl className="kv" style={{ marginBottom: 12 }}>
@@ -190,8 +252,10 @@ export function RegisterView({ vasps }: { vasps: VaspInfo[] }) {
           )}
           {result && (
             <>
-              <div className="dim" style={{ fontSize: 12, margin: '14px 0 6px' }}>Notabene's response</div>
-              <Json value={result.notabeneResponse} />
+              <div className="dim" style={{ fontSize: 12, margin: '14px 0 6px' }}>
+                Proof — {String(result.proof.status ?? 'submitted')} (customer {result.customerId})
+              </div>
+              <Json value={{ wallet: result.wallet, proof: result.proof }} />
             </>
           )}
         </div>

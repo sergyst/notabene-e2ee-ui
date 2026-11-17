@@ -1,4 +1,4 @@
-import type { Attestation, Channel, DemoReport, PiiMode, RecipientKey, RegisterResponse, RegistrationStatus, SendResponse, TransferDetail, TransferSummary, VaspInfo } from './types';
+import type { Attestation, Channel, DemoReport, PiiMode, ProofType, RecipientKey, RegisterResponse, RegistrationStatus, SendResponse, TransferDetail, TransferSummary, VaspInfo } from './types';
 
 /** Vite proxies /api to the Spring server, so this is same-origin in dev. */
 const BASE = import.meta.env.VITE_API_BASE ?? '';
@@ -71,7 +71,14 @@ export const api = {
     vasp: string;
     address: string;
     network: string;
-    proof: { type: string; attestation: string; signature: string };
+    managed?: boolean;
+    proof: {
+      type: ProofType;
+      attestation?: string;
+      signature?: string;
+      walletProvider?: string;
+      xpub?: string;
+    };
   }) => request<RegisterResponse>('/api/register/complete', { method: 'POST', body: JSON.stringify(body) }),
 
   samplePii: () => request<Record<string, unknown>>('/api/samplePii'),

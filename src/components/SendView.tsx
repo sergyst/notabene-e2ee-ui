@@ -184,11 +184,11 @@ export function SendView({
             </div>
           )}
 
-          {channel === 'notabene' && mode === 'branch' && (
+          {channel === 'notabene' && mode === 'field' && (
             <div className="banner warn">
-              Notabene rejects branch mode: it validates that <code>ivms101.originator</code> is an
-              object, and <code>skipValidation</code> does not bypass that. Use <strong>field</strong>
-              {' '}for live sends; branch works on the local channel.
+              Notabene v2.1 takes one JWE per party (<code>/transfers/&#123;id&#125;/parties/&#123;role&#125;/encrypted-pii</code>),
+              so field mode is refused for live sends. Use <strong>branch</strong>; field works on the
+              local channel.
             </div>
           )}
 

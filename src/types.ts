@@ -104,8 +104,8 @@ export interface RegistrationStatus {
   address: string;
   network: string;
   caip10: string;
-  asset: string;
-  confidence: string;
+  /** How Notabene established ownership, e.g. AddressHash. */
+  source: string | null;
   vasp: {
     did: string;
     name: string | null;
@@ -116,10 +116,15 @@ export interface RegistrationStatus {
   } | null;
 }
 
+export type ProofType = 'eip-191' | 'bip-322' | 'bip-137-xpub' | 'self-declaration' | 'screenshot';
+
 export interface RegisterResponse {
   vasp: string;
-  owner: string;
+  customerId: string;
   caip10: string;
-  notabeneResponse: Record<string, unknown>;
+  /** Notabene's answer to POST /api/v1/wallets. */
+  wallet: Record<string, unknown>;
+  /** Notabene's answer to the proof submission: id, type, status Submitted | Accepted | Failed. */
+  proof: Record<string, unknown>;
   status: RegistrationStatus;
 }
