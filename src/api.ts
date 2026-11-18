@@ -17,7 +17,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
     });
   } catch {
-    throw new ApiFailure('Cannot reach the server. Is it running on :8080?', 0);
+    throw new ApiFailure('Cannot reach the server. Is it running on :8091?', 0);
   }
 
   const text = await response.text();

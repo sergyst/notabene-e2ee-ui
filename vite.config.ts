@@ -8,7 +8,7 @@ export default defineConfig({
     // Same-origin in dev, so the browser never has to care about CORS.
     proxy: {
       '/api': {
-        target: process.env.API_TARGET ?? 'http://localhost:8080',
+        target: process.env.API_TARGET ?? 'http://localhost:8091',
         changeOrigin: true,
       },
     },

@@ -19,7 +19,7 @@ cd ../notabene-e2ee && ./mvnw spring-boot:run
 npm install && npm run dev
 ```
 
-Open http://localhost:5173. Vite proxies `/api` to `localhost:8080`, so it is same-origin in dev and
+Open http://localhost:5173. Vite proxies `/api` to `localhost:8091`, so it is same-origin in dev and
 CORS never comes into it. Point it elsewhere with `API_TARGET=http://host:port npm run dev`.
 
 ## What's in it
